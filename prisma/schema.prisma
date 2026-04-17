@@ -20,6 +20,7 @@ model User {
   campaignsAsGm   Campaign[]       @relation("CampaignGM")
   campaignMembers CampaignMember[]
   knights         Knight[]         @relation("KnightPlayer")
+  invitesSent     CampaignInvite[] @relation("InvitesSent")
 }
 
 enum CampaignRole {
@@ -37,8 +38,23 @@ model Campaign {
   gm      User             @relation("CampaignGM", fields: [gmUserId], references: [id], onDelete: Restrict)
   members CampaignMember[]
   knights Knight[]
+  invites CampaignInvite[]
 
   @@index([gmUserId])
+}
+
+model CampaignInvite {
+  id              String   @id @default(cuid())
+  campaignId      String
+  email           String
+  invitedByUserId String
+  createdAt       DateTime @default(now())
+
+  campaign  Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  invitedBy User     @relation("InvitesSent", fields: [invitedByUserId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, email])
+  @@index([email])
 }
 
 model CampaignMember {

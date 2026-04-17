@@ -2,6 +2,9 @@ import Link from "next/link";
 
 import { DeleteCampaignButton } from "@/components/campaigns/delete-campaign-button";
 import { EditCampaignForm } from "@/components/campaigns/edit-campaign-form";
+import { InviteForm } from "@/components/campaigns/invite-form";
+import { InviteList } from "@/components/campaigns/invite-list";
+import { MemberList } from "@/components/campaigns/member-list";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -22,7 +25,7 @@ export default async function CampaignDetailPage({ params }: CampaignPageProps) 
   const { id } = await params;
   const { campaign, isGm, user } = await requireCampaignAccess(id);
 
-  const [members, knights] = await Promise.all([
+  const [members, knights, invites] = await Promise.all([
     prisma.campaignMember.findMany({
       where: { campaignId: campaign.id },
       include: { user: true },
@@ -33,6 +36,13 @@ export default async function CampaignDetailPage({ params }: CampaignPageProps) 
       include: { player: { select: { name: true, email: true } } },
       orderBy: [{ createdAt: "asc" }],
     }),
+    isGm
+      ? prisma.campaignInvite.findMany({
+          where: { campaignId: campaign.id },
+          orderBy: [{ createdAt: "asc" }],
+          select: { id: true, email: true, createdAt: true },
+        })
+      : Promise.resolve([]),
   ]);
 
   const ownKnights = knights.filter((k) => k.playerUserId === user.id);
@@ -128,39 +138,19 @@ export default async function CampaignDetailPage({ params }: CampaignPageProps) 
             </CardTitle>
             <CardDescription>
               {isGm
-                ? "Invites and player-facing roles will land with v1."
+                ? "Invite players by email. Existing users join immediately; new emails wait for Google sign-in."
                 : "Only the Game Master can change this roster."}
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <ul className="divide-y divide-border">
-              {members.map((member) => (
-                <li
-                  key={member.userId}
-                  className="flex items-center justify-between py-2 first:pt-0 last:pb-0"
-                >
-                  <div className="flex flex-col">
-                    <span className="text-foreground">
-                      {member.user.name ?? member.user.email ?? "Unnamed knight"}
-                    </span>
-                    {member.user.name && member.user.email ? (
-                      <span className="text-xs text-muted-foreground">
-                        {member.user.email}
-                      </span>
-                    ) : null}
-                  </div>
-                  <span
-                    className={
-                      member.role === "gm"
-                        ? "rounded-full border border-accent/60 bg-accent/15 px-2 py-0.5 text-xs font-medium uppercase tracking-wider text-accent-foreground"
-                        : "rounded-full border border-border bg-muted px-2 py-0.5 text-xs font-medium uppercase tracking-wider text-muted-foreground"
-                    }
-                  >
-                    {member.role === "gm" ? "Game Master" : "Player"}
-                  </span>
-                </li>
-              ))}
-            </ul>
+          <CardContent className="space-y-5">
+            {isGm ? <InviteForm campaignId={campaign.id} /> : null}
+            {isGm ? <InviteList invites={invites} /> : null}
+            <MemberList
+              members={members}
+              gmUserId={campaign.gmUserId}
+              isGm={isGm}
+              campaignId={campaign.id}
+            />
           </CardContent>
         </Card>
       </section>

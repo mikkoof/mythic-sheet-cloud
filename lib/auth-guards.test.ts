@@ -153,6 +153,17 @@ describe("requireKnightAccess", () => {
 });
 
 describe("requireKnightWriteAccess", () => {
+  it("404s for a non-member of the campaign", async () => {
+    authMock.mockResolvedValueOnce({ user: { id: "stranger" } });
+    knightFindUniqueMock.mockResolvedValueOnce({
+      id: "k1",
+      campaignId: "c1",
+      playerUserId: "u2",
+    });
+    findUniqueMock.mockResolvedValueOnce(null);
+    await expect(requireKnightWriteAccess("k1")).rejects.toThrow("NOT_FOUND");
+  });
+
   it("404s for a non-owner, non-GM member", async () => {
     authMock.mockResolvedValueOnce({ user: { id: "u1" } });
     knightFindUniqueMock.mockResolvedValueOnce({

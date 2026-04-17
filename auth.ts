@@ -5,6 +5,7 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 
 import { prisma } from "@/lib/db";
 import { DEV_AUTH_ENABLED, isDevUserEmail } from "@/lib/dev-auth";
+import { convertPendingInvites } from "@/lib/invites";
 
 const providers: NextAuthConfig["providers"] = [
   Google({
@@ -47,6 +48,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       const id = user?.id ?? (token?.sub as string | undefined);
       if (id) session.user.id = id;
       return session;
+    },
+  },
+  events: {
+    async signIn({ user }) {
+      if (!user?.id || !user.email) return;
+      try {
+        await convertPendingInvites(user.id, user.email);
+      } catch (err) {
+        console.error("convertPendingInvites failed", err);
+      }
     },
   },
 });
