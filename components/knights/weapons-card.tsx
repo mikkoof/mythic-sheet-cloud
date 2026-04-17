@@ -1,14 +1,9 @@
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+"use client";
+
+import { AttackDiceBox } from "@/components/knights/sheet/attack-dice-box";
+import { CircleCheckbox } from "@/components/knights/sheet/circle-checkbox";
+import { SheetSection } from "@/components/knights/sheet/sheet-section";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 
 import type { Weapon } from "@/lib/validators/knight";
 
@@ -27,6 +22,12 @@ const BLANK: Weapon = {
   notes: "",
 };
 
+const FLAGS = [
+  { key: "hefty" as const, label: "H", title: "Hefty" },
+  { key: "long" as const, label: "L", title: "Long" },
+  { key: "slow" as const, label: "S", title: "Slow" },
+];
+
 export function WeaponsCard({ weapons, onChange, canEdit }: WeaponsCardProps) {
   const add = () => onChange([...weapons, { ...BLANK }]);
   const remove = (i: number) =>
@@ -35,56 +36,52 @@ export function WeaponsCard({ weapons, onChange, canEdit }: WeaponsCardProps) {
     onChange(weapons.map((w, idx) => (idx === i ? { ...w, ...p } : w)));
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="font-heading text-xl tracking-wide">
-          Weapons
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <SheetSection title="Weapon">
+      <div className="grid grid-cols-[1fr_auto_auto] items-center gap-x-3 gap-y-2">
+        <div className="font-heading text-[10px] uppercase tracking-widest text-muted-foreground">
+          {/* name column header intentionally blank */}
+        </div>
+        <div className="font-heading text-[10px] uppercase tracking-widest text-muted-foreground text-center">
+          Attack Dice
+        </div>
+        <div className="grid grid-cols-3 gap-2 text-center">
+          {FLAGS.map((f) => (
+            <span
+              key={f.key}
+              title={f.title}
+              className="font-heading text-[10px] uppercase tracking-widest text-muted-foreground w-5"
+            >
+              {f.label}
+            </span>
+          ))}
+        </div>
+
         {weapons.length === 0 ? (
-          <p className="text-sm italic text-muted-foreground">
+          <div className="col-span-3 py-2 text-sm italic text-muted-foreground">
             No weapons yet.
-          </p>
+          </div>
         ) : (
           weapons.map((w, i) => {
             const idPrefix = `weapon-${i}`;
             return (
-              <div
-                key={i}
-                className="space-y-3 rounded-md border border-border bg-muted/40 p-3"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="grid flex-1 gap-3 sm:grid-cols-[2fr_1fr]">
-                    <div className="space-y-1">
-                      <Label htmlFor={`${idPrefix}-name`}>Name</Label>
-                      <Input
-                        id={`${idPrefix}-name`}
-                        value={w.name}
-                        maxLength={60}
-                        onChange={(e) => patch(i, { name: e.target.value })}
-                        disabled={!canEdit}
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label htmlFor={`${idPrefix}-dice`}>Attack dice</Label>
-                      <Input
-                        id={`${idPrefix}-dice`}
-                        value={w.attackDice}
-                        maxLength={40}
-                        onChange={(e) =>
-                          patch(i, { attackDice: e.target.value })
-                        }
-                        disabled={!canEdit}
-                        placeholder="d8 / d10 / d12"
-                      />
-                    </div>
-                  </div>
+              <div key={i} className="contents">
+                <div className="flex items-center gap-2">
+                  <input
+                    id={`${idPrefix}-name`}
+                    type="text"
+                    value={w.name}
+                    maxLength={60}
+                    onChange={(e) => patch(i, { name: e.target.value })}
+                    disabled={!canEdit}
+                    placeholder="Weapon name"
+                    aria-label={`Weapon ${i + 1} name`}
+                    className="sheet-lined-input font-heading text-sm tracking-wide"
+                  />
                   {canEdit ? (
                     <Button
                       type="button"
                       variant="ghost"
-                      size="sm"
+                      size="icon-xs"
                       onClick={() => remove(i)}
                       aria-label={`Remove weapon ${i + 1}`}
                     >
@@ -92,44 +89,33 @@ export function WeaponsCard({ weapons, onChange, canEdit }: WeaponsCardProps) {
                     </Button>
                   ) : null}
                 </div>
-                <div className="flex flex-wrap items-center gap-4 text-sm">
-                  {(["hefty", "long", "slow"] as const).map((flag) => {
-                    const id = `${idPrefix}-${flag}`;
-                    return (
-                      <label
-                        key={flag}
-                        htmlFor={id}
-                        className="inline-flex items-center gap-2 capitalize"
-                      >
-                        <Checkbox
-                          id={id}
-                          checked={w[flag]}
-                          onCheckedChange={(v) =>
-                            patch(i, { [flag]: v === true })
-                          }
-                          disabled={!canEdit}
-                        />
-                        {flag}
-                      </label>
-                    );
-                  })}
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor={`${idPrefix}-notes`}>Notes</Label>
-                  <Textarea
-                    id={`${idPrefix}-notes`}
-                    rows={2}
-                    maxLength={300}
-                    value={w.notes}
-                    onChange={(e) => patch(i, { notes: e.target.value })}
-                    disabled={!canEdit}
-                  />
+                <AttackDiceBox
+                  id={`${idPrefix}-dice`}
+                  value={w.attackDice}
+                  onChange={(v) => patch(i, { attackDice: v })}
+                  disabled={!canEdit}
+                  ariaLabel={`Weapon ${i + 1} attack dice`}
+                />
+                <div className="grid grid-cols-3 gap-2 justify-items-center">
+                  {FLAGS.map((f) => (
+                    <CircleCheckbox
+                      key={f.key}
+                      id={`${idPrefix}-${f.key}`}
+                      checked={w[f.key]}
+                      onCheckedChange={(v) => patch(i, { [f.key]: v })}
+                      disabled={!canEdit}
+                      aria-label={`${f.title} (weapon ${i + 1})`}
+                      size="md"
+                    />
+                  ))}
                 </div>
               </div>
             );
           })
         )}
-        {canEdit ? (
+      </div>
+      {canEdit ? (
+        <div className="mt-3">
           <Button
             type="button"
             variant="outline"
@@ -139,14 +125,30 @@ export function WeaponsCard({ weapons, onChange, canEdit }: WeaponsCardProps) {
           >
             + Add weapon
           </Button>
-        ) : null}
-        <input
-          type="hidden"
-          name="weapons"
-          value={JSON.stringify(weapons)}
-          readOnly
-        />
-      </CardContent>
-    </Card>
+        </div>
+      ) : null}
+      <div className="mt-4 space-y-1 border-t border-foreground/20 pt-3 text-[11px] leading-snug text-muted-foreground">
+        <p>
+          <span className="font-heading uppercase">Hefty</span>: One hand. You
+          may only use one.
+        </p>
+        <p>
+          <span className="font-heading uppercase">Long</span>: Two hands.{" "}
+          <span className="font-heading uppercase">Impaired</span> in confined
+          spaces.
+        </p>
+        <p>
+          <span className="font-heading uppercase">Slow</span>: Can&apos;t both
+          move and Attack.{" "}
+          <span className="font-heading uppercase">Long</span>.
+        </p>
+      </div>
+      <input
+        type="hidden"
+        name="weapons"
+        value={JSON.stringify(weapons)}
+        readOnly
+      />
+    </SheetSection>
   );
 }

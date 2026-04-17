@@ -14,12 +14,14 @@ export const weaponSchema = z.object({
   notes: trimmed(300).default(""),
 });
 
+export const protectiveArticleItemSchema = z.object({
+  name: trimmed(60).default(""),
+  checked: z.coerce.boolean().default(false),
+});
+
 export const protectiveArticlesSchema = z.object({
-  shield: z.coerce.boolean().default(true),
-  coat: z.coerce.boolean().default(true),
-  helm: z.coerce.boolean().default(true),
-  plate: z.coerce.boolean().default(true),
-  extra: z.coerce.number().int().default(0),
+  items: z.array(protectiveArticleItemSchema).length(4),
+  extra: z.coerce.number().int().min(-99).max(99).default(0),
 });
 
 const statPair = z.object({
@@ -65,7 +67,58 @@ export const updateKnightSchema = z.object({
 });
 
 export type Weapon = z.infer<typeof weaponSchema>;
+export type ProtectiveArticleItem = z.infer<typeof protectiveArticleItemSchema>;
 export type ProtectiveArticles = z.infer<typeof protectiveArticlesSchema>;
 export type CreateKnightInput = z.infer<typeof createKnightSchema>;
 export type UpdateKnightInput = z.infer<typeof updateKnightSchema>;
 export type KnightDraft = UpdateKnightInput;
+
+export const EMPTY_PROTECTIVE_ARTICLES: ProtectiveArticles = {
+  items: [
+    { name: "", checked: false },
+    { name: "", checked: false },
+    { name: "", checked: false },
+    { name: "", checked: false },
+  ],
+  extra: 0,
+};
+
+const LEGACY_SLOT_LABELS: Record<string, string> = {
+  shield: "Shield",
+  coat: "Coat",
+  helm: "Helm",
+  plate: "Plate",
+};
+
+export function normalizeProtectiveArticles(raw: unknown): ProtectiveArticles {
+  const parsed = protectiveArticlesSchema.safeParse(raw);
+  if (parsed.success) return parsed.data;
+
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    const r = raw as Record<string, unknown>;
+    const legacyKeys = ["shield", "coat", "helm", "plate"] as const;
+    const hasLegacy = legacyKeys.some((k) => k in r);
+    if (hasLegacy) {
+      const items = legacyKeys.map((k) => ({
+        name: LEGACY_SLOT_LABELS[k],
+        checked: Boolean(r[k]),
+      }));
+      const extraRaw = r.extra;
+      const extra =
+        typeof extraRaw === "number" && Number.isFinite(extraRaw)
+          ? Math.trunc(extraRaw)
+          : 0;
+      return { items, extra };
+    }
+  }
+
+  return {
+    items: EMPTY_PROTECTIVE_ARTICLES.items.map((i) => ({ ...i })),
+    extra: 0,
+  };
+}
+
+export function computeTotalArmour(a: ProtectiveArticles): number {
+  const base = a.items.reduce((acc, i) => acc + (i.checked ? 1 : 0), 0);
+  return base + a.extra;
+}

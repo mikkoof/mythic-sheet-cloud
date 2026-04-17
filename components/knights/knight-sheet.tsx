@@ -5,15 +5,21 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { IdentityCard } from "@/components/knights/identity-card";
-import { StatsCard } from "@/components/knights/stats-card";
+import { StatSection } from "@/components/knights/stats-card";
+import { GuardCard } from "@/components/knights/guard-card";
 import { GloryRankCard } from "@/components/knights/glory-rank-card";
 import { AgeSelector } from "@/components/knights/age-selector";
 import { ConditionsCard } from "@/components/knights/conditions-card";
-import { AbilityPassionCard } from "@/components/knights/ability-passion-card";
+import { FeatsCard } from "@/components/knights/feats-card";
+import { GambitsCard } from "@/components/knights/gambits-card";
+import {
+  AbilityCard,
+  PassionCard,
+} from "@/components/knights/ability-passion-card";
 import { PropertyList } from "@/components/knights/property-list";
 import { WeaponsCard } from "@/components/knights/weapons-card";
 import { ProtectiveArticlesCard } from "@/components/knights/protective-articles-card";
-import { RulebookReferenceCard } from "@/components/knights/rulebook-reference-card";
+import { OathCard } from "@/components/knights/rulebook-reference-card";
 
 import { updateKnightAction } from "@/app/campaigns/[id]/knights/actions";
 import {
@@ -149,17 +155,6 @@ export function KnightSheet({
               onChange={update}
               canEdit={canEdit}
             />
-            <StatsCard
-              vig={draft.vig}
-              cla={draft.cla}
-              spi={draft.spi}
-              guard={draft.guard}
-              vigTraits={draft.vigTraits}
-              claTraits={draft.claTraits}
-              spiTraits={draft.spiTraits}
-              onChange={update}
-              canEdit={canEdit}
-            />
             <GloryRankCard
               glory={draft.glory}
               onChange={(glory) => update({ glory })}
@@ -170,31 +165,33 @@ export function KnightSheet({
               onChange={(age) => update({ age })}
               canEdit={canEdit}
             />
-            <ConditionsCard
-              fatigued={draft.fatigued}
-              exposed={draft.exposed}
-              exhausted={draft.exhausted}
-              impaired={draft.impaired}
-              onChange={update}
+            <GuardCard
+              guard={draft.guard}
+              onChange={(guard) => update({ guard })}
               canEdit={canEdit}
             />
-          </div>
-
-          <div className="space-y-6">
-            <AbilityPassionCard
-              ability={draft.ability}
-              passion={draft.passion}
-              onChange={update}
+            <StatSection
+              kind="vig"
+              value={draft.vig}
+              traits={draft.vigTraits}
+              onChangeValue={(vig) => update({ vig })}
+              onChangeTraits={(vigTraits) => update({ vigTraits })}
               canEdit={canEdit}
             />
-            <PropertyList
-              property={draft.property}
-              onChange={(property) => update({ property })}
+            <StatSection
+              kind="cla"
+              value={draft.cla}
+              traits={draft.claTraits}
+              onChangeValue={(cla) => update({ cla })}
+              onChangeTraits={(claTraits) => update({ claTraits })}
               canEdit={canEdit}
             />
-            <WeaponsCard
-              weapons={draft.weapons}
-              onChange={(weapons) => update({ weapons })}
+            <StatSection
+              kind="spi"
+              value={draft.spi}
+              traits={draft.spiTraits}
+              onChangeValue={(spi) => update({ spi })}
+              onChangeTraits={(spiTraits) => update({ spiTraits })}
               canEdit={canEdit}
             />
             <ProtectiveArticlesCard
@@ -204,7 +201,43 @@ export function KnightSheet({
               }
               canEdit={canEdit}
             />
-            <RulebookReferenceCard />
+          </div>
+
+          <div className="space-y-6">
+            <ConditionsCard
+              exposed={draft.exposed}
+              exhausted={draft.exhausted}
+              impaired={draft.impaired}
+              onChange={update}
+              canEdit={canEdit}
+            />
+            <FeatsCard
+              fatigued={draft.fatigued}
+              onChange={(patch) => update(patch)}
+              canEdit={canEdit}
+            />
+            <WeaponsCard
+              weapons={draft.weapons}
+              onChange={(weapons) => update({ weapons })}
+              canEdit={canEdit}
+            />
+            <GambitsCard />
+            <AbilityCard
+              ability={draft.ability}
+              onChange={update}
+              canEdit={canEdit}
+            />
+            <PassionCard
+              passion={draft.passion}
+              onChange={update}
+              canEdit={canEdit}
+            />
+            <PropertyList
+              property={draft.property}
+              onChange={(property) => update({ property })}
+              canEdit={canEdit}
+            />
+            <OathCard />
           </div>
         </div>
       </form>

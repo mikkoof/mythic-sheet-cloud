@@ -1,60 +1,58 @@
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+"use client";
 
-type AbilityPassionCardProps = {
+import { SheetSection } from "@/components/knights/sheet/sheet-section";
+
+type AbilityCardProps = {
   ability: string;
-  passion: string;
-  onChange: (patch: { ability?: string; passion?: string }) => void;
+  onChange: (patch: { ability?: string }) => void;
   canEdit: boolean;
 };
 
-export function AbilityPassionCard({
-  ability,
-  passion,
-  onChange,
-  canEdit,
-}: AbilityPassionCardProps) {
+export function AbilityCard({ ability, onChange, canEdit }: AbilityCardProps) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="font-heading text-xl tracking-wide">
-          Ability & Passion
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="knight-ability">Ability</Label>
-          <Textarea
-            id="knight-ability"
-            name="ability"
-            maxLength={1000}
-            rows={3}
-            value={ability}
-            onChange={(e) => onChange({ ability: e.target.value })}
-            disabled={!canEdit}
-            placeholder="Your Knight's signature ability."
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="knight-passion">Restore SPI when:</Label>
-          <Textarea
-            id="knight-passion"
-            name="passion"
-            maxLength={500}
-            rows={2}
-            value={passion}
-            onChange={(e) => onChange({ passion: e.target.value })}
-            disabled={!canEdit}
-            placeholder="The thing that stirs your Knight's spirit."
-          />
-        </div>
-      </CardContent>
-    </Card>
+    <SheetSection title="Ability">
+      <textarea
+        id="knight-ability"
+        name="ability"
+        maxLength={1000}
+        rows={4}
+        value={ability}
+        onChange={(e) => onChange({ ability: e.target.value })}
+        disabled={!canEdit}
+        placeholder="Your Knight's signature ability."
+        className="sheet-lined-textarea"
+        aria-label="Ability"
+      />
+    </SheetSection>
+  );
+}
+
+type PassionCardProps = {
+  passion: string;
+  onChange: (patch: { passion?: string }) => void;
+  canEdit: boolean;
+};
+
+export function PassionCard({ passion, onChange, canEdit }: PassionCardProps) {
+  return (
+    <SheetSection title="Passion">
+      <label
+        htmlFor="knight-passion"
+        className="mb-1 block font-heading text-xs uppercase tracking-widest text-muted-foreground"
+      >
+        Restore SPI when:
+      </label>
+      <textarea
+        id="knight-passion"
+        name="passion"
+        maxLength={500}
+        rows={3}
+        value={passion}
+        onChange={(e) => onChange({ passion: e.target.value })}
+        disabled={!canEdit}
+        placeholder="The thing that stirs your Knight's spirit."
+        className="sheet-lined-textarea"
+      />
+    </SheetSection>
   );
 }

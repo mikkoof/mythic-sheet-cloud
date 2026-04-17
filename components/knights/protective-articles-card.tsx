@@ -1,16 +1,12 @@
 "use client";
 
+import { CircleCheckbox } from "@/components/knights/sheet/circle-checkbox";
+import { SheetSection } from "@/components/knights/sheet/sheet-section";
+import { ShieldTracker } from "@/components/knights/sheet/shield-tracker";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-
-import type { ProtectiveArticles } from "@/lib/validators/knight";
+  computeTotalArmour,
+  type ProtectiveArticles,
+} from "@/lib/validators/knight";
 
 type ProtectiveArticlesCardProps = {
   protectiveArticles: ProtectiveArticles;
@@ -18,93 +14,90 @@ type ProtectiveArticlesCardProps = {
   canEdit: boolean;
 };
 
-type SlotKey = "shield" | "coat" | "helm" | "plate";
-
-const SLOTS: readonly { key: SlotKey; label: string }[] = [
-  { key: "shield", label: "Shield" },
-  { key: "coat", label: "Coat" },
-  { key: "helm", label: "Helm" },
-  { key: "plate", label: "Plate" },
-];
-
 export function ProtectiveArticlesCard({
   protectiveArticles,
   onChange,
   canEdit,
 }: ProtectiveArticlesCardProps) {
-  const base = SLOTS.reduce(
-    (acc, { key }) => acc + (protectiveArticles[key] ? 1 : 0),
-    0,
-  );
-  const total = base + protectiveArticles.extra;
+  const { items, extra } = protectiveArticles;
+  const total = computeTotalArmour(protectiveArticles);
 
-  const patch = (p: Partial<ProtectiveArticles>) =>
-    onChange({ ...protectiveArticles, ...p });
+  const updateItem = (
+    i: number,
+    patch: Partial<{ name: string; checked: boolean }>,
+  ) => {
+    const nextItems = items.map((item, idx) =>
+      idx === i ? { ...item, ...patch } : item,
+    );
+    onChange({ ...protectiveArticles, items: nextItems });
+  };
+
+  const updateExtra = (value: number) =>
+    onChange({ ...protectiveArticles, extra: value });
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="font-heading text-xl tracking-wide">
-          Protective Articles
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="grid gap-2 sm:grid-cols-2">
-          {SLOTS.map(({ key, label }) => {
-            const id = `armour-${key}`;
-            const checked = protectiveArticles[key];
-            return (
-              <label
-                key={key}
-                htmlFor={id}
-                className="flex cursor-pointer items-center gap-3 rounded-md border border-border bg-background/40 px-3 py-2"
-              >
-                <Checkbox
-                  id={id}
-                  checked={checked}
-                  onCheckedChange={(v) => patch({ [key]: Boolean(v) })}
-                  disabled={!canEdit}
-                />
-                <span className="flex-1 font-heading text-sm tracking-wide">
-                  {label}
-                </span>
-                <span className="text-xs text-muted-foreground">+1</span>
-              </label>
-            );
-          })}
-        </div>
-        <div className="flex items-center gap-3">
-          <Label
-            htmlFor="armour-extra"
-            className="font-heading text-sm tracking-wide"
-          >
-            Extra
-          </Label>
-          <Input
-            id="armour-extra"
-            type="number"
-            value={protectiveArticles.extra}
-            onChange={(e) =>
-              patch({ extra: Number(e.target.value) || 0 })
-            }
-            disabled={!canEdit}
-            className="w-20 text-center tabular-nums"
-          />
-          <span className="text-xs text-muted-foreground">
-            positive or negative
-          </span>
-        </div>
-        <div className="flex items-center justify-between border-t border-border pt-3 text-sm">
-          <Label className="font-heading tracking-wide">Total Armour</Label>
-          <span className="font-heading text-lg tabular-nums">{total}</span>
-        </div>
+    <SheetSection title="Protective Articles">
+      <div className="space-y-2.5">
+        {items.map((item, i) => {
+          const id = `article-${i}`;
+          return (
+            <div key={i} className="flex items-center gap-3">
+              <CircleCheckbox
+                id={id}
+                checked={item.checked}
+                onCheckedChange={(v) => updateItem(i, { checked: v })}
+                disabled={!canEdit}
+                aria-label={`Article ${i + 1}`}
+              />
+              <input
+                type="text"
+                value={item.name}
+                maxLength={60}
+                onChange={(e) => updateItem(i, { name: e.target.value })}
+                disabled={!canEdit}
+                placeholder={i === 0 ? "Shield" : ""}
+                aria-label={`Article ${i + 1} name`}
+                className="sheet-lined-input font-heading text-sm tracking-wide"
+              />
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-3 flex items-center gap-3">
+        <label
+          htmlFor="armour-extra"
+          className="font-heading text-xs uppercase tracking-wider text-muted-foreground"
+        >
+          Extra
+        </label>
         <input
-          type="hidden"
-          name="protectiveArticles"
-          value={JSON.stringify(protectiveArticles)}
-          readOnly
+          id="armour-extra"
+          type="number"
+          value={extra}
+          onChange={(e) => updateExtra(Number(e.target.value) || 0)}
+          disabled={!canEdit}
+          className="sheet-number h-7 w-16 rounded-sm border border-foreground/60 bg-background px-2 text-center font-heading tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
         />
-      </CardContent>
-    </Card>
+        <span className="text-[10px] text-muted-foreground">
+          (positive or negative)
+        </span>
+      </div>
+      <div className="mt-4 flex items-center justify-center gap-4 border-t border-foreground/20 pt-3">
+        <span className="font-heading text-lg uppercase tracking-widest">
+          Total Armour
+        </span>
+        <ShieldTracker
+          variant="single"
+          value={total}
+          ariaLabel="Total armour"
+        />
+      </div>
+      <input
+        type="hidden"
+        name="protectiveArticles"
+        value={JSON.stringify(protectiveArticles)}
+        readOnly
+      />
+    </SheetSection>
   );
 }

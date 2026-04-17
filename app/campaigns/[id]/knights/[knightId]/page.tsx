@@ -2,9 +2,8 @@ import { KnightSheet } from "@/components/knights/knight-sheet";
 import { requireKnightAccess } from "@/lib/auth-guards";
 import { prisma } from "@/lib/db";
 import {
-  protectiveArticlesSchema,
+  normalizeProtectiveArticles,
   type KnightDraft,
-  type ProtectiveArticles,
   type Weapon,
 } from "@/lib/validators/knight";
 
@@ -16,12 +15,6 @@ function padTriplet(input: string[] | null | undefined): string[] {
   const arr = Array.isArray(input) ? input.slice(0, 3) : [];
   while (arr.length < 3) arr.push("");
   return arr;
-}
-
-function toProtectiveArticles(raw: unknown): ProtectiveArticles {
-  const result = protectiveArticlesSchema.safeParse(raw);
-  if (result.success) return result.data;
-  return protectiveArticlesSchema.parse({});
 }
 
 export default async function KnightSheetPage({
@@ -55,7 +48,7 @@ export default async function KnightSheetPage({
     passion: knight.passion,
     property: knight.property,
     weapons: (knight.weapons as unknown as Weapon[]) ?? [],
-    protectiveArticles: toProtectiveArticles(knight.protectiveArticles),
+    protectiveArticles: normalizeProtectiveArticles(knight.protectiveArticles),
   };
 
   const playerLabel = player?.name ?? player?.email ?? "Unknown player";

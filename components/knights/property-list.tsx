@@ -1,12 +1,7 @@
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+"use client";
+
+import { SheetSection } from "@/components/knights/sheet/sheet-section";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 type PropertyListProps = {
   property: string[];
@@ -26,16 +21,8 @@ export function PropertyList({
     onChange(property.map((row, idx) => (idx === i ? value : row)));
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="font-heading text-xl tracking-wide">
-          Property
-        </CardTitle>
-        <CardDescription>
-          Inventory — each slot holds a single item.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-2">
+    <SheetSection title="Property">
+      <div className="space-y-2">
         {property.length === 0 ? (
           <p className="text-sm italic text-muted-foreground">
             No property carried.
@@ -46,17 +33,20 @@ export function PropertyList({
               <span className="w-6 text-right font-heading text-sm text-muted-foreground">
                 {i + 1}.
               </span>
-              <Input
+              <input
+                type="text"
                 maxLength={120}
                 value={row}
                 onChange={(e) => update(i, e.target.value)}
                 disabled={!canEdit}
+                aria-label={`Property item ${i + 1}`}
+                className="sheet-lined-input"
               />
               {canEdit ? (
                 <Button
                   type="button"
                   variant="ghost"
-                  size="sm"
+                  size="icon-xs"
                   onClick={() => remove(i)}
                   aria-label={`Remove property ${i + 1}`}
                 >
@@ -77,13 +67,13 @@ export function PropertyList({
             + Add item
           </Button>
         ) : null}
-        <input
-          type="hidden"
-          name="property"
-          value={JSON.stringify(property)}
-          readOnly
-        />
-      </CardContent>
-    </Card>
+      </div>
+      <input
+        type="hidden"
+        name="property"
+        value={JSON.stringify(property)}
+        readOnly
+      />
+    </SheetSection>
   );
 }

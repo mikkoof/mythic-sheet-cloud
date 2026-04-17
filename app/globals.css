@@ -129,3 +129,33 @@
     @apply font-sans;
   }
 }
+
+@layer components {
+  .sheet-lined-input {
+    @apply h-8 w-full rounded-none border-0 border-b border-foreground/60 bg-transparent px-1 py-1 text-base text-foreground outline-none transition-colors focus-visible:border-foreground focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-60 md:text-sm;
+  }
+  .sheet-lined-textarea {
+    @apply w-full rounded-sm border border-foreground/30 bg-transparent text-sm text-foreground outline-none transition-colors focus-visible:border-foreground focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-60;
+    padding: 0.25rem 0.5rem;
+    line-height: 1.5rem;
+    background-image: linear-gradient(
+      to bottom,
+      transparent calc(1.5rem - 1px),
+      color-mix(in oklab, var(--foreground) 22%, transparent) calc(1.5rem - 1px),
+      color-mix(in oklab, var(--foreground) 22%, transparent) 1.5rem
+    );
+    background-size: 100% 1.5rem;
+    background-repeat: repeat-y;
+    background-origin: content-box;
+    background-clip: content-box;
+  }
+  .sheet-number {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+  .sheet-number::-webkit-outer-spin-button,
+  .sheet-number::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+}

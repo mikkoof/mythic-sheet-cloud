@@ -6,7 +6,7 @@ import { GloryRankCard } from "./glory-rank-card";
 describe("GloryRankCard", () => {
   it("shows the derived rank and worthy-to line", () => {
     render(<GloryRankCard glory={6} onChange={vi.fn()} canEdit />);
-    expect(screen.getByText("Knight Tenant")).toBeInTheDocument();
+    expect(screen.getByText("Knight-Tenant")).toBeInTheDocument();
     expect(screen.getByText("Worthy to Rule a Holding")).toBeInTheDocument();
   });
 
