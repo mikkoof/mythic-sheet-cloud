@@ -1,20 +1,35 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## Getting Started
+## Local development
 
-First, run the development server:
+Copy `.env.example` to `.env.local`, fill in the Postgres and `AUTH_SECRET` keys, then:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
+pnpm db:generate
+pnpm db:migrate
+pnpm db:seed      # creates gm@localhost.test, player1@localhost.test, player2@localhost.test
+ALLOW_DEV_AUTH=true pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Visit [http://localhost:3000](http://localhost:3000). You will see a red "DEV AUTH ACTIVE" banner on `/signin` with buttons to sign in as the seeded users — no Google OAuth round-trip needed.
+
+`ALLOW_DEV_AUTH` is gated to non-production builds: `auth.ts` throws at import time if `NODE_ENV=production` and the flag is set, and the dev provider is only registered when both conditions hold. **Never set this flag on production or preview deployments.**
+
+## Running tests
+
+```bash
+pnpm test       # vitest run
+pnpm typecheck
+pnpm lint
+```
+
+Tests that need an authenticated session use the helper in `test/auth.ts`:
+
+```ts
+import { mockAuth, devSession } from "@/test/auth";
+mockAuth(devSession({ name: "Dev Player 1" }));
+```
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
