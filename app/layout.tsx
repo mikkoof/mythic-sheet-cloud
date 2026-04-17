@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { MedievalSharp, Lora } from "next/font/google";
+
+import { SiteHeader } from "@/components/site-header";
+
 import "./globals.css";
 
 const medievalSharp = MedievalSharp({
@@ -28,7 +31,10 @@ export default function RootLayout({
       lang="en"
       className={`${medievalSharp.variable} ${lora.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <SiteHeader />
+        {children}
+      </body>
     </html>
   );
 }
