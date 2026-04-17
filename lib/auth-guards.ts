@@ -33,3 +33,24 @@ export async function requireCampaignAccess(
   if (minRole === "gm" && !isGm) notFound();
   return { user, campaign: membership.campaign, membership, isGm };
 }
+
+export async function requireKnightAccess(knightId: string) {
+  const user = await requireCurrentUser();
+  const knight = await prisma.knight.findUnique({ where: { id: knightId } });
+  if (!knight) notFound();
+  const membership = await prisma.campaignMember.findUnique({
+    where: {
+      campaignId_userId: { campaignId: knight.campaignId, userId: user.id },
+    },
+  });
+  if (!membership) notFound();
+  const isGm = membership.role === "gm";
+  const isOwner = knight.playerUserId === user.id;
+  return { user, knight, membership, isGm, isOwner };
+}
+
+export async function requireKnightWriteAccess(knightId: string) {
+  const ctx = await requireKnightAccess(knightId);
+  if (!ctx.isGm && !ctx.isOwner) notFound();
+  return ctx;
+}

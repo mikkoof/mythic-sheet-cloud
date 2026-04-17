@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { requireCampaignAccess } from "@/lib/auth-guards";
 import { prisma } from "@/lib/db";
+import { rankFromGlory } from "@/lib/rank";
 
 type CampaignPageProps = {
   params: Promise<{ id: string }>;
@@ -19,13 +20,24 @@ type CampaignPageProps = {
 
 export default async function CampaignDetailPage({ params }: CampaignPageProps) {
   const { id } = await params;
-  const { campaign, isGm } = await requireCampaignAccess(id);
+  const { campaign, isGm, user } = await requireCampaignAccess(id);
 
-  const members = await prisma.campaignMember.findMany({
-    where: { campaignId: campaign.id },
-    include: { user: true },
-    orderBy: [{ role: "asc" }, { joinedAt: "asc" }],
-  });
+  const [members, knights] = await Promise.all([
+    prisma.campaignMember.findMany({
+      where: { campaignId: campaign.id },
+      include: { user: true },
+      orderBy: [{ role: "asc" }, { joinedAt: "asc" }],
+    }),
+    prisma.knight.findMany({
+      where: { campaignId: campaign.id },
+      include: { player: { select: { name: true, email: true } } },
+      orderBy: [{ createdAt: "asc" }],
+    }),
+  ]);
+
+  const ownKnights = knights.filter((k) => k.playerUserId === user.id);
+  const otherKnights = knights.filter((k) => k.playerUserId !== user.id);
+  const orderedKnights = [...ownKnights, ...otherKnights];
 
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-8 px-6 py-10">
@@ -45,6 +57,68 @@ export default async function CampaignDetailPage({ params }: CampaignPageProps) 
           <p className="text-muted-foreground italic">No description yet.</p>
         )}
       </header>
+
+      <section>
+        <Card>
+          <CardHeader>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <CardTitle className="font-heading text-xl tracking-wide">
+                  Knights
+                </CardTitle>
+                <CardDescription>
+                  {orderedKnights.length === 0
+                    ? "No knights in this campaign yet."
+                    : "Your knights appear first."}
+                </CardDescription>
+              </div>
+              <Button asChild size="sm">
+                <Link href={`/campaigns/${campaign.id}/knights/new`}>
+                  New knight
+                </Link>
+              </Button>
+            </div>
+          </CardHeader>
+          {orderedKnights.length > 0 ? (
+            <CardContent>
+              <ul className="divide-y divide-border">
+                {orderedKnights.map((knight) => {
+                  const rank = rankFromGlory(knight.glory);
+                  const mine = knight.playerUserId === user.id;
+                  const playerLabel =
+                    knight.player.name ?? knight.player.email ?? "Unknown";
+                  return (
+                    <li
+                      key={knight.id}
+                      className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
+                    >
+                      <Link
+                        href={`/campaigns/${campaign.id}/knights/${knight.id}`}
+                        className="group flex-1 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <div className="font-heading text-lg tracking-wide group-hover:text-primary">
+                          {knight.name || "Unnamed Knight"}
+                          {knight.epithet ? (
+                            <span className="ml-2 font-sans text-sm italic text-muted-foreground">
+                              the {knight.epithet} Knight
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {mine ? "You" : playerLabel}
+                        </div>
+                      </Link>
+                      <span className="rounded-full border border-accent/60 bg-accent/15 px-2 py-0.5 text-xs font-medium uppercase tracking-wider text-accent-foreground">
+                        {rank.name}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </CardContent>
+          ) : null}
+        </Card>
+      </section>
 
       <section>
         <Card>

@@ -19,6 +19,7 @@ model User {
   sessions        Session[]
   campaignsAsGm   Campaign[]       @relation("CampaignGM")
   campaignMembers CampaignMember[]
+  knights         Knight[]         @relation("KnightPlayer")
 }
 
 enum CampaignRole {
@@ -35,6 +36,7 @@ model Campaign {
 
   gm      User             @relation("CampaignGM", fields: [gmUserId], references: [id], onDelete: Restrict)
   members CampaignMember[]
+  knights Knight[]
 
   @@index([gmUserId])
 }
@@ -50,6 +52,59 @@ model CampaignMember {
 
   @@id([campaignId, userId])
   @@index([userId])
+}
+
+enum KnightAge {
+  young
+  mature
+  old
+}
+
+model Knight {
+  id           String @id @default(cuid())
+  campaignId   String
+  playerUserId String
+
+  name         String
+  epithet      String @default("")
+  ultimateFate String @default("") @db.Text
+
+  vigRemaining   Int @default(0)
+  vigMax         Int @default(0)
+  claRemaining   Int @default(0)
+  claMax         Int @default(0)
+  spiRemaining   Int @default(0)
+  spiMax         Int @default(0)
+  guardRemaining Int @default(0)
+  guardMax       Int @default(0)
+
+  vigTraits String[] @default(["", "", ""])
+  claTraits String[] @default(["", "", ""])
+  spiTraits String[] @default(["", "", ""])
+
+  glory Int       @default(0)
+  age   KnightAge @default(young)
+
+  fatigued  Boolean @default(false)
+  exposed   Boolean @default(false)
+  exhausted Boolean @default(false)
+  impaired  Boolean @default(false)
+
+  ability String @default("") @db.Text
+  passion String @default("") @db.Text
+
+  property           String[] @default([])
+  weapons            Json     @default("[]")
+  protectiveArticles Json     @default("[]")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  player   User     @relation("KnightPlayer", fields: [playerUserId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+  @@index([playerUserId])
 }
 
 model Account {

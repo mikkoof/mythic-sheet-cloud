@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const authMock = vi.fn();
 const findUniqueMock = vi.fn();
+const knightFindUniqueMock = vi.fn();
 
 vi.mock("@/auth", () => ({
   auth: () => authMock(),
@@ -11,6 +12,9 @@ vi.mock("@/lib/db", () => ({
   prisma: {
     campaignMember: {
       findUnique: (...args: unknown[]) => findUniqueMock(...args),
+    },
+    knight: {
+      findUnique: (...args: unknown[]) => knightFindUniqueMock(...args),
     },
   },
 }));
@@ -24,11 +28,17 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
-import { requireCampaignAccess, requireCurrentUser } from "./auth-guards";
+import {
+  requireCampaignAccess,
+  requireCurrentUser,
+  requireKnightAccess,
+  requireKnightWriteAccess,
+} from "./auth-guards";
 
 beforeEach(() => {
   authMock.mockReset();
   findUniqueMock.mockReset();
+  knightFindUniqueMock.mockReset();
 });
 
 describe("requireCurrentUser", () => {
@@ -86,5 +96,109 @@ describe("requireCampaignAccess", () => {
     });
     const result = await requireCampaignAccess("c1", "gm");
     expect(result.isGm).toBe(true);
+  });
+});
+
+describe("requireKnightAccess", () => {
+  it("404s when the knight does not exist", async () => {
+    authMock.mockResolvedValueOnce({ user: { id: "u1" } });
+    knightFindUniqueMock.mockResolvedValueOnce(null);
+    await expect(requireKnightAccess("k1")).rejects.toThrow("NOT_FOUND");
+  });
+
+  it("404s when the user is not a campaign member", async () => {
+    authMock.mockResolvedValueOnce({ user: { id: "u1" } });
+    knightFindUniqueMock.mockResolvedValueOnce({
+      id: "k1",
+      campaignId: "c1",
+      playerUserId: "u2",
+    });
+    findUniqueMock.mockResolvedValueOnce(null);
+    await expect(requireKnightAccess("k1")).rejects.toThrow("NOT_FOUND");
+  });
+
+  it("returns isOwner:true when the viewer is the knight's player", async () => {
+    authMock.mockResolvedValueOnce({ user: { id: "u1" } });
+    knightFindUniqueMock.mockResolvedValueOnce({
+      id: "k1",
+      campaignId: "c1",
+      playerUserId: "u1",
+    });
+    findUniqueMock.mockResolvedValueOnce({
+      campaignId: "c1",
+      userId: "u1",
+      role: "player",
+    });
+    const result = await requireKnightAccess("k1");
+    expect(result.isOwner).toBe(true);
+    expect(result.isGm).toBe(false);
+  });
+
+  it("returns isGm:true when the viewer is the campaign GM (not owner)", async () => {
+    authMock.mockResolvedValueOnce({ user: { id: "gm1" } });
+    knightFindUniqueMock.mockResolvedValueOnce({
+      id: "k1",
+      campaignId: "c1",
+      playerUserId: "u2",
+    });
+    findUniqueMock.mockResolvedValueOnce({
+      campaignId: "c1",
+      userId: "gm1",
+      role: "gm",
+    });
+    const result = await requireKnightAccess("k1");
+    expect(result.isGm).toBe(true);
+    expect(result.isOwner).toBe(false);
+  });
+});
+
+describe("requireKnightWriteAccess", () => {
+  it("404s for a non-owner, non-GM member", async () => {
+    authMock.mockResolvedValueOnce({ user: { id: "u1" } });
+    knightFindUniqueMock.mockResolvedValueOnce({
+      id: "k1",
+      campaignId: "c1",
+      playerUserId: "u2",
+    });
+    findUniqueMock.mockResolvedValueOnce({
+      campaignId: "c1",
+      userId: "u1",
+      role: "player",
+    });
+    await expect(requireKnightWriteAccess("k1")).rejects.toThrow("NOT_FOUND");
+  });
+
+  it("allows the owning player to write", async () => {
+    authMock.mockResolvedValueOnce({ user: { id: "u1" } });
+    knightFindUniqueMock.mockResolvedValueOnce({
+      id: "k1",
+      campaignId: "c1",
+      playerUserId: "u1",
+    });
+    findUniqueMock.mockResolvedValueOnce({
+      campaignId: "c1",
+      userId: "u1",
+      role: "player",
+    });
+    await expect(requireKnightWriteAccess("k1")).resolves.toMatchObject({
+      isOwner: true,
+    });
+  });
+
+  it("allows the GM to write another player's knight", async () => {
+    authMock.mockResolvedValueOnce({ user: { id: "gm1" } });
+    knightFindUniqueMock.mockResolvedValueOnce({
+      id: "k1",
+      campaignId: "c1",
+      playerUserId: "u2",
+    });
+    findUniqueMock.mockResolvedValueOnce({
+      campaignId: "c1",
+      userId: "gm1",
+      role: "gm",
+    });
+    await expect(requireKnightWriteAccess("k1")).resolves.toMatchObject({
+      isGm: true,
+    });
   });
 });
