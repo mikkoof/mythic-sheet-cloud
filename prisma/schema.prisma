@@ -15,8 +15,41 @@ model User {
   image         String?
   createdAt     DateTime  @default(now())
 
-  accounts Account[]
-  sessions Session[]
+  accounts        Account[]
+  sessions        Session[]
+  campaignsAsGm   Campaign[]       @relation("CampaignGM")
+  campaignMembers CampaignMember[]
+}
+
+enum CampaignRole {
+  gm
+  player
+}
+
+model Campaign {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  gmUserId    String
+  createdAt   DateTime @default(now())
+
+  gm      User             @relation("CampaignGM", fields: [gmUserId], references: [id], onDelete: Restrict)
+  members CampaignMember[]
+
+  @@index([gmUserId])
+}
+
+model CampaignMember {
+  campaignId String
+  userId     String
+  role       CampaignRole
+  joinedAt   DateTime     @default(now())
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([campaignId, userId])
+  @@index([userId])
 }
 
 model Account {
