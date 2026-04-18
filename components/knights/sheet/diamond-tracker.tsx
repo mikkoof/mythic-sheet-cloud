@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { useNumberField } from "@/components/knights/sheet/use-number-field";
 
 type DiamondTrackerProps = {
   remaining: number;
@@ -23,10 +24,18 @@ export function DiamondTracker({
   idPrefix,
   ariaLabel,
 }: DiamondTrackerProps) {
-  const clamp = (n: number) => {
-    if (Number.isNaN(n)) return 0;
-    return Math.max(min, Math.min(maxValue, Math.floor(n)));
-  };
+  const remainingField = useNumberField({
+    value: remaining,
+    onCommit: (n) => onChange?.({ remaining: n, max }),
+    min,
+    max: maxValue,
+  });
+  const maxField = useNumberField({
+    value: max,
+    onCommit: (n) => onChange?.({ remaining, max: n }),
+    min,
+    max: maxValue,
+  });
 
   return (
     <div
@@ -47,11 +56,8 @@ export function DiamondTracker({
             inputMode="numeric"
             min={min}
             max={maxValue}
-            value={remaining}
             disabled={disabled}
-            onChange={(e) =>
-              onChange?.({ remaining: clamp(Number(e.target.value)), max })
-            }
+            {...remainingField}
             className={cn(
               "sheet-number h-6 w-10 bg-transparent text-center font-heading text-lg tabular-nums outline-none",
               "focus-visible:ring-1 focus-visible:ring-primary rounded-sm",
@@ -67,11 +73,8 @@ export function DiamondTracker({
             inputMode="numeric"
             min={min}
             max={maxValue}
-            value={max}
             disabled={disabled}
-            onChange={(e) =>
-              onChange?.({ remaining, max: clamp(Number(e.target.value)) })
-            }
+            {...maxField}
             className={cn(
               "sheet-number h-6 w-10 bg-transparent text-center font-heading text-lg tabular-nums outline-none",
               "focus-visible:ring-1 focus-visible:ring-primary rounded-sm",

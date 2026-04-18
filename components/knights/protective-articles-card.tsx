@@ -3,6 +3,7 @@
 import { CircleCheckbox } from "@/components/knights/sheet/circle-checkbox";
 import { SheetSection } from "@/components/knights/sheet/sheet-section";
 import { ShieldTracker } from "@/components/knights/sheet/shield-tracker";
+import { useNumberField } from "@/components/knights/sheet/use-number-field";
 import {
   computeTotalArmour,
   type ProtectiveArticles,
@@ -34,6 +35,13 @@ export function ProtectiveArticlesCard({
 
   const updateExtra = (value: number) =>
     onChange({ ...protectiveArticles, extra: value });
+
+  const extraField = useNumberField({
+    value: extra,
+    onCommit: updateExtra,
+    min: -99,
+    max: 99,
+  });
 
   return (
     <SheetSection title="Protective Articles">
@@ -73,9 +81,11 @@ export function ProtectiveArticlesCard({
         <input
           id="armour-extra"
           type="number"
-          value={extra}
-          onChange={(e) => updateExtra(Number(e.target.value) || 0)}
+          inputMode="numeric"
+          min={-99}
+          max={99}
           disabled={!canEdit}
+          {...extraField}
           className="sheet-number h-7 w-16 rounded-sm border border-foreground/60 bg-background px-2 text-center font-heading tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
         />
         <span className="text-[10px] text-muted-foreground">
