@@ -164,3 +164,12 @@ export async function updateKnightAction(
   revalidatePath(`/campaigns/${knight.campaignId}`);
   revalidatePath(`/campaigns/${knight.campaignId}/knights/${knightId}`);
 }
+
+export async function deleteKnightAction(knightId: string) {
+  const { knight } = await requireKnightWriteAccess(knightId);
+
+  await prisma.knight.delete({ where: { id: knightId } });
+
+  revalidatePath(`/campaigns/${knight.campaignId}`);
+  revalidatePath(`/campaigns/${knight.campaignId}/knights/${knightId}`);
+}

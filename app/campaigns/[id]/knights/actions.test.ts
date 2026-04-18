@@ -5,6 +5,7 @@ const campaignMemberFindUniqueMock = vi.fn();
 const knightFindUniqueMock = vi.fn();
 const knightCreateMock = vi.fn();
 const knightUpdateMock = vi.fn();
+const knightDeleteMock = vi.fn();
 const revalidatePathMock = vi.fn();
 
 vi.mock("@/auth", () => ({
@@ -20,6 +21,7 @@ vi.mock("@/lib/db", () => ({
       findUnique: (...args: unknown[]) => knightFindUniqueMock(...args),
       create: (...args: unknown[]) => knightCreateMock(...args),
       update: (...args: unknown[]) => knightUpdateMock(...args),
+      delete: (...args: unknown[]) => knightDeleteMock(...args),
     },
   },
 }));
@@ -39,6 +41,7 @@ vi.mock("next/cache", () => ({
 
 import {
   createKnightAction,
+  deleteKnightAction,
   updateKnightAction,
   updateKnightStatusAction,
 } from "./actions";
@@ -89,9 +92,11 @@ beforeEach(() => {
   knightFindUniqueMock.mockReset();
   knightCreateMock.mockReset();
   knightUpdateMock.mockReset();
+  knightDeleteMock.mockReset();
   revalidatePathMock.mockReset();
   knightCreateMock.mockResolvedValue({ id: "k-new" });
   knightUpdateMock.mockResolvedValue({});
+  knightDeleteMock.mockResolvedValue({});
 });
 
 describe("createKnightAction access matrix", () => {
@@ -335,5 +340,83 @@ describe("updateKnightAction access matrix", () => {
 
     await updateKnightAction("k1", validUpdateForm());
     expect(knightUpdateMock).toHaveBeenCalled();
+  });
+});
+
+describe("deleteKnightAction access matrix", () => {
+  it("404s non-members", async () => {
+    authMock.mockResolvedValueOnce({ user: { id: "stranger" } });
+    knightFindUniqueMock.mockResolvedValueOnce({
+      id: "k1",
+      campaignId: "c1",
+      playerUserId: "p1",
+    });
+    campaignMemberFindUniqueMock.mockResolvedValueOnce(null);
+
+    await expect(deleteKnightAction("k1")).rejects.toThrow("NOT_FOUND");
+    expect(knightDeleteMock).not.toHaveBeenCalled();
+  });
+
+  it("404s a player who does not own the knight", async () => {
+    authMock.mockResolvedValueOnce({ user: { id: "p2" } });
+    knightFindUniqueMock.mockResolvedValueOnce({
+      id: "k1",
+      campaignId: "c1",
+      playerUserId: "p1",
+    });
+    campaignMemberFindUniqueMock.mockResolvedValueOnce({
+      campaignId: "c1",
+      userId: "p2",
+      role: "player",
+    });
+
+    await expect(deleteKnightAction("k1")).rejects.toThrow("NOT_FOUND");
+    expect(knightDeleteMock).not.toHaveBeenCalled();
+  });
+
+  it("allows the owning player to delete their knight", async () => {
+    authMock.mockResolvedValueOnce({ user: { id: "p1" } });
+    knightFindUniqueMock.mockResolvedValueOnce({
+      id: "k1",
+      campaignId: "c1",
+      playerUserId: "p1",
+    });
+    campaignMemberFindUniqueMock.mockResolvedValueOnce({
+      campaignId: "c1",
+      userId: "p1",
+      role: "player",
+    });
+
+    await deleteKnightAction("k1");
+    expect(knightDeleteMock).toHaveBeenCalledWith({ where: { id: "k1" } });
+    expect(revalidatePathMock).toHaveBeenCalledWith("/campaigns/c1");
+    expect(revalidatePathMock).toHaveBeenCalledWith(
+      "/campaigns/c1/knights/k1",
+    );
+  });
+
+  it("allows the GM to delete another player's knight", async () => {
+    authMock.mockResolvedValueOnce({ user: { id: "gm1" } });
+    knightFindUniqueMock.mockResolvedValueOnce({
+      id: "k1",
+      campaignId: "c1",
+      playerUserId: "p1",
+    });
+    campaignMemberFindUniqueMock.mockResolvedValueOnce({
+      campaignId: "c1",
+      userId: "gm1",
+      role: "gm",
+    });
+
+    await deleteKnightAction("k1");
+    expect(knightDeleteMock).toHaveBeenCalledWith({ where: { id: "k1" } });
+  });
+
+  it("404s when the knight does not exist", async () => {
+    authMock.mockResolvedValueOnce({ user: { id: "gm1" } });
+    knightFindUniqueMock.mockResolvedValueOnce(null);
+
+    await expect(deleteKnightAction("missing")).rejects.toThrow("NOT_FOUND");
+    expect(knightDeleteMock).not.toHaveBeenCalled();
   });
 });

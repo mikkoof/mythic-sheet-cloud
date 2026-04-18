@@ -5,6 +5,7 @@ import { EditCampaignForm } from "@/components/campaigns/edit-campaign-form";
 import { InviteForm } from "@/components/campaigns/invite-form";
 import { InviteList } from "@/components/campaigns/invite-list";
 import { MemberList } from "@/components/campaigns/member-list";
+import { DeleteKnightButton } from "@/components/knights/delete-knight-button";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -115,6 +116,7 @@ export default async function CampaignDetailPage({ params }: CampaignPageProps) 
                     knight.player.name ?? knight.player.email ?? "Unknown";
                   const status = knight.status as KnightStatus;
                   const dimmed = status !== "active";
+                  const canDelete = isGm || mine;
                   return (
                     <li
                       key={knight.id}
@@ -161,6 +163,13 @@ export default async function CampaignDetailPage({ params }: CampaignPageProps) 
                         <span className="rounded-full border border-accent/60 bg-accent/15 px-2 py-0.5 text-xs font-medium uppercase tracking-wider text-accent-foreground">
                           {rank.name}
                         </span>
+                        {canDelete ? (
+                          <DeleteKnightButton
+                            knightId={knight.id}
+                            knightName={knight.name}
+                            knightEpithet={knight.epithet}
+                          />
+                        ) : null}
                       </div>
                     </li>
                   );
