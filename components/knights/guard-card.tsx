@@ -2,6 +2,7 @@
 
 import { SheetSection } from "@/components/knights/sheet/sheet-section";
 import { ShieldTracker } from "@/components/knights/sheet/shield-tracker";
+import { cn } from "@/lib/utils";
 
 type StatPair = { remaining: number; max: number };
 
@@ -9,11 +10,21 @@ type GuardCardProps = {
   guard: StatPair;
   onChange: (guard: StatPair) => void;
   canEdit: boolean;
+  className?: string;
 };
 
-export function GuardCard({ guard, onChange, canEdit }: GuardCardProps) {
+export function GuardCard({
+  guard,
+  onChange,
+  canEdit,
+  className,
+}: GuardCardProps) {
   return (
-    <SheetSection title="Guard">
+    <SheetSection
+      title="Guard"
+      className={cn("flex h-full flex-col", className)}
+      contentClassName="flex flex-1 items-center justify-center"
+    >
       <div className="flex justify-center py-2">
         <ShieldTracker
           variant="pair"
@@ -25,6 +36,7 @@ export function GuardCard({ guard, onChange, canEdit }: GuardCardProps) {
           disabled={!canEdit}
           min={0}
           maxValue={99}
+          size="xl"
         />
       </div>
       <input

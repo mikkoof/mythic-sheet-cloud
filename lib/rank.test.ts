@@ -17,7 +17,7 @@ describe("rankFromGlory", () => {
     expect(rankFromGlory(glory)).toEqual({ name, worthyTo });
   });
 
-  it("clamps above 12 to Knight Radiant", () => {
+  it("clamps above the cap to Knight Radiant", () => {
     expect(rankFromGlory(15)).toEqual({
       name: "Knight Radiant",
       worthyTo: "Worthy to Seek the City",

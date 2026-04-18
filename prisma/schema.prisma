@@ -76,10 +76,19 @@ enum KnightAge {
   old
 }
 
+enum KnightStatus {
+  active
+  retired
+  dead
+}
+
 model Knight {
-  id           String @id @default(cuid())
-  campaignId   String
-  playerUserId String
+  id                  String  @id @default(cuid())
+  campaignId          String
+  playerUserId        String
+  predecessorKnightId String?
+
+  status KnightStatus @default(active)
 
   name         String
   epithet      String @default("")
@@ -116,11 +125,69 @@ model Knight {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  player   User     @relation("KnightPlayer", fields: [playerUserId], references: [id], onDelete: Cascade)
+  campaign    Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  player      User     @relation("KnightPlayer", fields: [playerUserId], references: [id], onDelete: Cascade)
+  predecessor Knight?  @relation("KnightSuccession", fields: [predecessorKnightId], references: [id], onDelete: SetNull)
+  successors  Knight[] @relation("KnightSuccession")
+  steeds      Steed[]
+  squires     Squire[]
 
   @@index([campaignId])
   @@index([playerUserId])
+  @@index([predecessorKnightId])
+  @@index([campaignId, status])
+}
+
+model Steed {
+  id       String @id @default(cuid())
+  knightId String
+
+  name String    @default("")
+  age  KnightAge @default(young)
+
+  vigRemaining   Int @default(0)
+  vigMax         Int @default(0)
+  claRemaining   Int @default(0)
+  claMax         Int @default(0)
+  spiRemaining   Int @default(0)
+  spiMax         Int @default(0)
+  guardRemaining Int @default(0)
+  guardMax       Int @default(0)
+
+  property String[] @default([])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  knight Knight @relation(fields: [knightId], references: [id], onDelete: Cascade)
+
+  @@index([knightId])
+}
+
+model Squire {
+  id       String @id @default(cuid())
+  knightId String
+
+  name String    @default("")
+  age  KnightAge @default(young)
+
+  vigRemaining   Int @default(0)
+  vigMax         Int @default(0)
+  claRemaining   Int @default(0)
+  claMax         Int @default(0)
+  spiRemaining   Int @default(0)
+  spiMax         Int @default(0)
+  guardRemaining Int @default(0)
+  guardMax       Int @default(0)
+
+  property String[] @default([])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  knight Knight @relation(fields: [knightId], references: [id], onDelete: Cascade)
+
+  @@index([knightId])
 }
 
 model Account {

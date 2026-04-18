@@ -5,44 +5,43 @@ import { SheetSection } from "@/components/knights/sheet/sheet-section";
 import { cn } from "@/lib/utils";
 
 type StatPair = { remaining: number; max: number };
-type TraitTriplet = [string, string, string] | string[];
-
 type StatKind = "vig" | "cla" | "spi";
 
-type StatSectionProps = {
-  kind: StatKind;
-  value: StatPair;
-  traits: TraitTriplet;
-  onChangeValue: (value: StatPair) => void;
-  onChangeTraits: (traits: string[]) => void;
-  canEdit: boolean;
+type StatConfig = {
+  label: string;
+  eyebrow: string;
+  descriptors: readonly [string, string, string];
 };
 
-const META: Record<
-  StatKind,
-  { title: string; placeholders: readonly [string, string, string] }
-> = {
+const CONFIG: Record<StatKind, StatConfig> = {
   vig: {
-    title: "Vigour",
-    placeholders: ["Strong Limbs", "Firm Hands", "Powerful Lungs"],
+    label: "VIG",
+    eyebrow: "Vigour",
+    descriptors: ["Strong Limbs", "Firm Hands", "Powerful Lungs"],
   },
   cla: {
-    title: "Clarity",
-    placeholders: ["Keen Instinct", "Lucid Mind", "Shrewd Eyes"],
+    label: "CLA",
+    eyebrow: "Clarity",
+    descriptors: ["Keen Instinct", "Lucid Mind", "Shrewd Eyes"],
   },
   spi: {
-    title: "Spirit",
-    placeholders: ["Charming Tongue", "Iron Will", "Fierce Heart"],
+    label: "SPI",
+    eyebrow: "Spirit",
+    descriptors: ["Charming Tongue", "Iron Will", "Fierce Heart"],
   },
 };
 
 const STAT_MIN = 2;
 const STAT_MAX = 18;
 
-const TRAIT_NAMES: Record<StatKind, string> = {
-  vig: "vigTraits",
-  cla: "claTraits",
-  spi: "spiTraits",
+type StatSectionProps = {
+  kind: StatKind;
+  value: StatPair;
+  traits: string[];
+  onChangeValue: (value: StatPair) => void;
+  onChangeTraits: (traits: string[]) => void;
+  canEdit: boolean;
+  className?: string;
 };
 
 export function StatSection({
@@ -50,24 +49,21 @@ export function StatSection({
   value,
   traits,
   onChangeValue,
-  onChangeTraits,
   canEdit,
+  className,
 }: StatSectionProps) {
-  const meta = META[kind];
-  const list = [0, 1, 2].map((i) => traits[i] ?? "");
-
-  const updateTrait = (i: number, v: string) => {
-    const next = [...list];
-    next[i] = v;
-    onChangeTraits(next);
-  };
+  const cfg = CONFIG[kind];
 
   return (
-    <SheetSection title={meta.title}>
-      <div className="flex items-center gap-4">
+    <SheetSection
+      title={cfg.label}
+      eyebrow={cfg.eyebrow}
+      className={cn("h-full", className)}
+    >
+      <div className="flex h-full flex-col items-center justify-between gap-3 py-1">
         <DiamondTracker
           idPrefix={`stat-${kind}`}
-          ariaLabel={meta.title}
+          ariaLabel={cfg.label}
           remaining={value.remaining}
           max={value.max}
           onChange={onChangeValue}
@@ -75,23 +71,9 @@ export function StatSection({
           min={STAT_MIN}
           maxValue={STAT_MAX}
         />
-        <div className="flex flex-1 flex-col gap-1.5">
-          {meta.placeholders.map((placeholder, i) => (
-            <input
-              key={i}
-              type="text"
-              value={list[i]}
-              maxLength={60}
-              onChange={(e) => updateTrait(i, e.target.value)}
-              disabled={!canEdit}
-              placeholder={placeholder}
-              aria-label={`${meta.title} trait ${i + 1}`}
-              className={cn(
-                "sheet-lined-input font-heading text-sm tracking-wide",
-              )}
-            />
-          ))}
-        </div>
+        <p className="text-center text-xs italic text-muted-foreground">
+          {cfg.descriptors.join(" · ")}
+        </p>
       </div>
       <input
         type="hidden"
@@ -99,16 +81,11 @@ export function StatSection({
         value={value.remaining}
         readOnly
       />
+      <input type="hidden" name={`${kind}Max`} value={value.max} readOnly />
       <input
         type="hidden"
-        name={`${kind}Max`}
-        value={value.max}
-        readOnly
-      />
-      <input
-        type="hidden"
-        name={TRAIT_NAMES[kind]}
-        value={JSON.stringify(list)}
+        name={`${kind}Traits`}
+        value={JSON.stringify(traits)}
         readOnly
       />
     </SheetSection>

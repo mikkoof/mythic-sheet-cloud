@@ -4,15 +4,19 @@ import { Button } from "@/components/ui/button";
 import { GloryOrbs } from "@/components/knights/sheet/glory-orbs";
 import { SheetSection } from "@/components/knights/sheet/sheet-section";
 import { cn } from "@/lib/utils";
-import { RANKS, WORTHY_TO, rankFromGlory } from "@/lib/rank";
+import {
+  GLORY_MAX,
+  RANKS,
+  TIER_FIRST_DOT,
+  WORTHY_TO,
+  rankFromGlory,
+} from "@/lib/rank";
 
 type GloryRankCardProps = {
   glory: number;
   onChange: (glory: number) => void;
   canEdit: boolean;
 };
-
-const TIER_START = [0, 3, 6, 9, 12];
 
 const WORTHY_LABEL: Record<(typeof RANKS)[number], string> = {
   "Knight Errant": "Lead a Warband",
@@ -27,11 +31,11 @@ export function GloryRankCard({
   onChange,
   canEdit,
 }: GloryRankCardProps) {
-  const clamped = Math.max(0, Math.min(12, Math.floor(glory)));
+  const clamped = Math.max(0, Math.min(GLORY_MAX, Math.floor(glory)));
   const currentRank = rankFromGlory(clamped).name;
 
   const dec = () => onChange(Math.max(0, clamped - 1));
-  const inc = () => onChange(Math.min(12, clamped + 1));
+  const inc = () => onChange(Math.min(GLORY_MAX, clamped + 1));
 
   return (
     <SheetSection title="Glory" eyebrow="Ranked · Worthy to">
@@ -46,58 +50,35 @@ export function GloryRankCard({
           Worthy to
         </div>
         {RANKS.map((rank, tierIdx) => {
-          const tierStart = TIER_START[tierIdx];
-          const nextStart = TIER_START[tierIdx + 1] ?? 13;
-          const isLastTier = tierIdx === RANKS.length - 1;
+          const firstDot = TIER_FIRST_DOT[tierIdx];
+          const nextFirstDot =
+            TIER_FIRST_DOT[tierIdx + 1] ?? GLORY_MAX + 1;
+          const markers = nextFirstDot - firstDot;
           const filled = Math.max(
             0,
-            Math.min(nextStart - tierStart, clamped - tierStart),
+            Math.min(markers, clamped - firstDot + 1),
           );
           const isCurrent = rank === currentRank;
           return (
-            <div
-              key={rank}
-              className={cn(
-                "contents",
-              )}
-            >
+            <div key={rank} className="contents">
               <div
                 className={cn(
                   "flex justify-center py-1 px-1 rounded-sm",
                   isCurrent ? "bg-accent/30" : "",
                 )}
               >
-                {isLastTier ? (
-                  <GloryOrbs
-                    filled={filled > 0 ? 1 : 0}
-                    total={0}
-                    showFinalDiamond
-                    onOrbClick={
-                      canEdit
-                        ? () => onChange(filled > 0 ? tierStart - 1 : 12)
-                        : undefined
-                    }
-                    ariaLabelForIndex={() =>
-                      filled > 0 ? "Clear Radiant" : "Set glory to 12"
-                    }
-                    disabled={!canEdit}
-                  />
-                ) : (
-                  <GloryOrbs
-                    filled={filled}
-                    total={nextStart - tierStart - 1}
-                    showFinalDiamond
-                    onOrbClick={
-                      canEdit
-                        ? (i) => onChange(tierStart + i + 1)
-                        : undefined
-                    }
-                    ariaLabelForIndex={(i) =>
-                      `Set glory to ${tierStart + i + 1}`
-                    }
-                    disabled={!canEdit}
-                  />
-                )}
+                <GloryOrbs
+                  filled={filled}
+                  total={markers}
+                  firstIsDiamond
+                  onOrbClick={
+                    canEdit ? (i) => onChange(firstDot + i) : undefined
+                  }
+                  ariaLabelForIndex={(i) =>
+                    `Set glory to ${firstDot + i}`
+                  }
+                  disabled={!canEdit}
+                />
               </div>
               <div
                 className={cn(

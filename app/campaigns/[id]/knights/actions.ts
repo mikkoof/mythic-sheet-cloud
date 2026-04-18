@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import {
   requireCampaignAccess,
@@ -10,6 +10,7 @@ import {
 import { prisma } from "@/lib/db";
 import {
   createKnightSchema,
+  knightStatusSchema,
   updateKnightSchema,
 } from "@/lib/validators/knight";
 
@@ -26,23 +27,59 @@ export async function createKnightAction(
   campaignId: string,
   formData: FormData,
 ) {
-  const { user } = await requireCampaignAccess(campaignId);
+  const { user, isGm } = await requireCampaignAccess(campaignId);
+  const rawPredecessor = formData.get("predecessorKnightId");
   const input = createKnightSchema.parse({
     name: formData.get("name"),
     epithet: formData.get("epithet") ?? "",
+    predecessorKnightId:
+      typeof rawPredecessor === "string" && rawPredecessor.length > 0
+        ? rawPredecessor
+        : undefined,
   });
+
+  let playerUserId = user.id;
+  let predecessorKnightId: string | null = null;
+
+  if (input.predecessorKnightId) {
+    const predecessor = await prisma.knight.findUnique({
+      where: { id: input.predecessorKnightId },
+      select: { id: true, campaignId: true, playerUserId: true },
+    });
+    if (!predecessor || predecessor.campaignId !== campaignId) notFound();
+    if (!isGm && predecessor.playerUserId !== user.id) notFound();
+    predecessorKnightId = predecessor.id;
+    playerUserId = predecessor.playerUserId;
+  }
 
   const knight = await prisma.knight.create({
     data: {
       campaignId,
-      playerUserId: user.id,
+      playerUserId,
       name: input.name,
       epithet: input.epithet,
+      predecessorKnightId,
     },
   });
 
   revalidatePath(`/campaigns/${campaignId}`);
   redirect(`/campaigns/${campaignId}/knights/${knight.id}`);
+}
+
+export async function updateKnightStatusAction(
+  knightId: string,
+  nextStatus: string,
+) {
+  const status = knightStatusSchema.parse(nextStatus);
+  const { knight } = await requireKnightWriteAccess(knightId);
+
+  await prisma.knight.update({
+    where: { id: knightId },
+    data: { status },
+  });
+
+  revalidatePath(`/campaigns/${knight.campaignId}`);
+  revalidatePath(`/campaigns/${knight.campaignId}/knights/${knightId}`);
 }
 
 export async function updateKnightAction(

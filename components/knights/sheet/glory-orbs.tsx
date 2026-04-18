@@ -7,6 +7,7 @@ type GloryOrbsProps = {
   total?: number;
   onOrbClick?: (index: number) => void;
   disabled?: boolean;
+  firstIsDiamond?: boolean;
   showFinalDiamond?: boolean;
   className?: string;
   size?: "sm" | "md";
@@ -28,22 +29,25 @@ export function GloryOrbs({
   total = 3,
   onOrbClick,
   disabled,
-  showFinalDiamond = true,
+  firstIsDiamond = false,
+  showFinalDiamond = false,
   className,
   size = "md",
   ariaLabelForIndex,
 }: GloryOrbsProps) {
-  const count = total + (showFinalDiamond ? 1 : 0);
-
   return (
     <div className={cn("flex items-center gap-1", className)}>
-      {Array.from({ length: count }).map((_, i) => {
-        const isLast = showFinalDiamond && i === count - 1;
+      {Array.from({ length: total }).map((_, i) => {
+        const isDiamond =
+          (firstIsDiamond && i === 0) ||
+          (showFinalDiamond && i === total - 1);
         const isFilled = i < filled;
         const interactive = onOrbClick && !disabled;
         const common = cn(
           "border-[1.5px] border-foreground transition-colors",
-          isLast ? cn("rotate-45", DIAMOND[size]) : cn("rounded-full", CIRCLE[size]),
+          isDiamond
+            ? cn("rotate-45", DIAMOND[size])
+            : cn("rounded-full", CIRCLE[size]),
           isFilled ? "bg-foreground" : "bg-background",
           interactive ? "cursor-pointer hover:ring-1 hover:ring-primary" : "",
           disabled ? "opacity-50" : "",

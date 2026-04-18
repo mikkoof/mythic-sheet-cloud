@@ -37,7 +37,11 @@ vi.mock("next/cache", () => ({
   revalidatePath: (...args: unknown[]) => revalidatePathMock(...args),
 }));
 
-import { createKnightAction, updateKnightAction } from "./actions";
+import {
+  createKnightAction,
+  updateKnightAction,
+  updateKnightStatusAction,
+} from "./actions";
 
 function fd(entries: Record<string, string>) {
   const f = new FormData();
@@ -119,6 +123,7 @@ describe("createKnightAction access matrix", () => {
         playerUserId: "p1",
         name: "Percival",
         epithet: "",
+        predecessorKnightId: null,
       },
     });
   });
@@ -136,6 +141,130 @@ describe("createKnightAction access matrix", () => {
       createKnightAction("c1", fd({ name: "Gawain", epithet: "" })),
     ).rejects.toThrow(/REDIRECT/);
     expect(knightCreateMock).toHaveBeenCalled();
+  });
+});
+
+describe("createKnightAction successor branch", () => {
+  it("copies predecessor's playerUserId so player retains ownership", async () => {
+    authMock.mockResolvedValueOnce({ user: { id: "gm1" } });
+    campaignMemberFindUniqueMock.mockResolvedValueOnce({
+      campaignId: "c1",
+      userId: "gm1",
+      role: "gm",
+      campaign: { id: "c1" },
+    });
+    knightFindUniqueMock.mockResolvedValueOnce({
+      id: "cprev00000000000",
+      campaignId: "c1",
+      playerUserId: "p1",
+    });
+
+    await expect(
+      createKnightAction(
+        "c1",
+        fd({ name: "Heir", epithet: "", predecessorKnightId: "cprev00000000000" }),
+      ),
+    ).rejects.toThrow(/REDIRECT/);
+
+    expect(knightCreateMock).toHaveBeenCalledWith({
+      data: {
+        campaignId: "c1",
+        playerUserId: "p1",
+        name: "Heir",
+        epithet: "",
+        predecessorKnightId: "cprev00000000000",
+      },
+    });
+  });
+
+  it("404s if the predecessor belongs to a different campaign", async () => {
+    authMock.mockResolvedValueOnce({ user: { id: "gm1" } });
+    campaignMemberFindUniqueMock.mockResolvedValueOnce({
+      campaignId: "c1",
+      userId: "gm1",
+      role: "gm",
+      campaign: { id: "c1" },
+    });
+    knightFindUniqueMock.mockResolvedValueOnce({
+      id: "prev",
+      campaignId: "other",
+      playerUserId: "p1",
+    });
+
+    await expect(
+      createKnightAction(
+        "c1",
+        fd({ name: "Heir", epithet: "", predecessorKnightId: "cprev00000000000" }),
+      ),
+    ).rejects.toThrow(/NOT_FOUND/);
+    expect(knightCreateMock).not.toHaveBeenCalled();
+  });
+
+  it("404s if a non-GM player tries to succeed someone else's knight", async () => {
+    authMock.mockResolvedValueOnce({ user: { id: "p2" } });
+    campaignMemberFindUniqueMock.mockResolvedValueOnce({
+      campaignId: "c1",
+      userId: "p2",
+      role: "player",
+      campaign: { id: "c1" },
+    });
+    knightFindUniqueMock.mockResolvedValueOnce({
+      id: "cprev00000000000",
+      campaignId: "c1",
+      playerUserId: "p1",
+    });
+
+    await expect(
+      createKnightAction(
+        "c1",
+        fd({ name: "Heir", epithet: "", predecessorKnightId: "cprev00000000000" }),
+      ),
+    ).rejects.toThrow(/NOT_FOUND/);
+    expect(knightCreateMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("updateKnightStatusAction access matrix", () => {
+  it("404s non-members", async () => {
+    authMock.mockResolvedValueOnce({ user: { id: "stranger" } });
+    knightFindUniqueMock.mockResolvedValueOnce({
+      id: "k1",
+      campaignId: "c1",
+      playerUserId: "p1",
+    });
+    campaignMemberFindUniqueMock.mockResolvedValueOnce(null);
+
+    await expect(
+      updateKnightStatusAction("k1", "dead"),
+    ).rejects.toThrow("NOT_FOUND");
+    expect(knightUpdateMock).not.toHaveBeenCalled();
+  });
+
+  it("allows the owning player to update status", async () => {
+    authMock.mockResolvedValueOnce({ user: { id: "p1" } });
+    knightFindUniqueMock.mockResolvedValueOnce({
+      id: "k1",
+      campaignId: "c1",
+      playerUserId: "p1",
+    });
+    campaignMemberFindUniqueMock.mockResolvedValueOnce({
+      campaignId: "c1",
+      userId: "p1",
+      role: "player",
+    });
+
+    await updateKnightStatusAction("k1", "retired");
+    expect(knightUpdateMock).toHaveBeenCalledWith({
+      where: { id: "k1" },
+      data: { status: "retired" },
+    });
+  });
+
+  it("rejects an invalid status value", async () => {
+    await expect(
+      updateKnightStatusAction("k1", "banished"),
+    ).rejects.toThrow();
+    expect(knightUpdateMock).not.toHaveBeenCalled();
   });
 });
 

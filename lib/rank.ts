@@ -18,9 +18,21 @@ export const WORTHY_TO: Record<Rank, string> = {
 
 export type RankInfo = { name: Rank; worthyTo: string };
 
+export const GLORY_MAX = 12;
+
+// Glory value at which each rank's first dot fills. Glory 0 stays Errant
+// with no dots colored; glory 12 colors the Radiant diamond.
+export const TIER_FIRST_DOT: readonly number[] = [1, 3, 6, 9, 12];
+
 export function rankFromGlory(glory: number): RankInfo {
-  const clamped = Math.max(0, Math.min(12, Math.floor(glory)));
-  const index = Math.min(Math.floor(clamped / 3), RANKS.length - 1);
+  const clamped = Math.max(0, Math.min(GLORY_MAX, Math.floor(glory)));
+  let index = 0;
+  for (let i = TIER_FIRST_DOT.length - 1; i >= 0; i--) {
+    if (clamped >= TIER_FIRST_DOT[i]) {
+      index = i;
+      break;
+    }
+  }
   const name = RANKS[index];
   return { name, worthyTo: WORTHY_TO[name] };
 }

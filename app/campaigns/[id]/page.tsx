@@ -16,6 +16,8 @@ import {
 import { requireCampaignAccess } from "@/lib/auth-guards";
 import { prisma } from "@/lib/db";
 import { rankFromGlory } from "@/lib/rank";
+import type { KnightStatus } from "@/lib/validators/knight";
+import { cn } from "@/lib/utils";
 
 type CampaignPageProps = {
   params: Promise<{ id: string }>;
@@ -33,7 +35,10 @@ export default async function CampaignDetailPage({ params }: CampaignPageProps) 
     }),
     prisma.knight.findMany({
       where: { campaignId: campaign.id },
-      include: { player: { select: { name: true, email: true } } },
+      include: {
+        player: { select: { name: true, email: true } },
+        predecessor: { select: { id: true, name: true } },
+      },
       orderBy: [{ createdAt: "asc" }],
     }),
     isGm
@@ -45,9 +50,20 @@ export default async function CampaignDetailPage({ params }: CampaignPageProps) 
       : Promise.resolve([]),
   ]);
 
-  const ownKnights = knights.filter((k) => k.playerUserId === user.id);
-  const otherKnights = knights.filter((k) => k.playerUserId !== user.id);
-  const orderedKnights = [...ownKnights, ...otherKnights];
+  const STATUS_ORDER: Record<KnightStatus, number> = {
+    active: 0,
+    retired: 1,
+    dead: 2,
+  };
+  const sortedKnights = [...knights].sort((a, b) => {
+    const aMine = a.playerUserId === user.id ? 0 : 1;
+    const bMine = b.playerUserId === user.id ? 0 : 1;
+    if (aMine !== bMine) return aMine - bMine;
+    const aStatus = STATUS_ORDER[a.status as KnightStatus];
+    const bStatus = STATUS_ORDER[b.status as KnightStatus];
+    if (aStatus !== bStatus) return aStatus - bStatus;
+    return a.createdAt.getTime() - b.createdAt.getTime();
+  });
 
   return (
     <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-8 px-6 py-10">
@@ -77,9 +93,9 @@ export default async function CampaignDetailPage({ params }: CampaignPageProps) 
                   Knights
                 </CardTitle>
                 <CardDescription>
-                  {orderedKnights.length === 0
+                  {sortedKnights.length === 0
                     ? "No knights in this campaign yet."
-                    : "Your knights appear first."}
+                    : "Your knights appear first. Retired and fallen knights are dimmed."}
                 </CardDescription>
               </div>
               <Button asChild size="sm">
@@ -89,18 +105,23 @@ export default async function CampaignDetailPage({ params }: CampaignPageProps) 
               </Button>
             </div>
           </CardHeader>
-          {orderedKnights.length > 0 ? (
+          {sortedKnights.length > 0 ? (
             <CardContent>
               <ul className="divide-y divide-border">
-                {orderedKnights.map((knight) => {
+                {sortedKnights.map((knight) => {
                   const rank = rankFromGlory(knight.glory);
                   const mine = knight.playerUserId === user.id;
                   const playerLabel =
                     knight.player.name ?? knight.player.email ?? "Unknown";
+                  const status = knight.status as KnightStatus;
+                  const dimmed = status !== "active";
                   return (
                     <li
                       key={knight.id}
-                      className="flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0"
+                      className={cn(
+                        "flex items-center justify-between gap-3 py-3 first:pt-0 last:pb-0",
+                        dimmed && "opacity-70",
+                      )}
                     >
                       <Link
                         href={`/campaigns/${campaign.id}/knights/${knight.id}`}
@@ -114,13 +135,33 @@ export default async function CampaignDetailPage({ params }: CampaignPageProps) 
                             </span>
                           ) : null}
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          {mine ? "You" : playerLabel}
+                        <div className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+                          <span>{mine ? "You" : playerLabel}</span>
+                          {knight.predecessor ? (
+                            <span className="italic">
+                              ⟵ successor to{" "}
+                              {knight.predecessor.name || "Unnamed Knight"}
+                            </span>
+                          ) : null}
                         </div>
                       </Link>
-                      <span className="rounded-full border border-accent/60 bg-accent/15 px-2 py-0.5 text-xs font-medium uppercase tracking-wider text-accent-foreground">
-                        {rank.name}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        {status !== "active" ? (
+                          <span
+                            className={cn(
+                              "rounded-full border px-2 py-0.5 text-xs font-medium uppercase tracking-wider",
+                              status === "dead"
+                                ? "border-destructive/50 bg-destructive/10 text-destructive"
+                                : "border-muted-foreground/40 bg-muted text-muted-foreground",
+                            )}
+                          >
+                            {status}
+                          </span>
+                        ) : null}
+                        <span className="rounded-full border border-accent/60 bg-accent/15 px-2 py-0.5 text-xs font-medium uppercase tracking-wider text-accent-foreground">
+                          {rank.name}
+                        </span>
+                      </div>
                     </li>
                   );
                 })}

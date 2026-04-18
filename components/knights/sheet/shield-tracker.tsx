@@ -2,6 +2,8 @@
 
 import { cn } from "@/lib/utils";
 
+type ShieldSize = "md" | "lg" | "xl";
+
 type ShieldTrackerPairProps = {
   variant: "pair";
   remaining: number;
@@ -12,6 +14,7 @@ type ShieldTrackerPairProps = {
   maxValue?: number;
   idPrefix: string;
   ariaLabel: string;
+  size?: ShieldSize;
 };
 
 type ShieldTrackerSingleProps = {
@@ -19,17 +22,25 @@ type ShieldTrackerSingleProps = {
   value: number;
   ariaLabel: string;
   idPrefix?: string;
+  size?: ShieldSize;
 };
 
 type ShieldTrackerProps = ShieldTrackerPairProps | ShieldTrackerSingleProps;
+
+const SIZE_CLASSES: Record<ShieldSize, string> = {
+  md: "h-28 w-24",
+  lg: "h-36 w-32",
+  xl: "h-48 w-40",
+};
 
 const SHIELD_PATH =
   "M50 4 C30 4 10 10 6 16 L6 46 C6 74 30 96 50 108 C70 96 94 74 94 46 L94 16 C90 10 70 4 50 4 Z";
 
 export function ShieldTracker(props: ShieldTrackerProps) {
+  const size = props.size ?? "md";
   return (
     <div
-      className="relative h-28 w-24 shrink-0"
+      className={cn("relative shrink-0", SIZE_CLASSES[size])}
       role="group"
       aria-label={props.ariaLabel}
     >
@@ -75,7 +86,7 @@ function PairBody({
   };
 
   return (
-    <div className="relative grid h-full grid-rows-2 pt-4 pb-3">
+    <div className="relative grid h-full grid-rows-2 pt-3 pb-6">
       <div className="flex flex-col items-center justify-end">
         <span className="pointer-events-none text-[9px] font-heading uppercase tracking-widest text-muted-foreground">
           Remaining

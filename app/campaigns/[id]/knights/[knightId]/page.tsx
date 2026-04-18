@@ -1,9 +1,11 @@
 import { KnightSheet } from "@/components/knights/knight-sheet";
 import { requireKnightAccess } from "@/lib/auth-guards";
 import { prisma } from "@/lib/db";
+import type { CompanionDraft } from "@/lib/validators/companion";
 import {
   normalizeProtectiveArticles,
   type KnightDraft,
+  type KnightStatus,
   type Weapon,
 } from "@/lib/validators/knight";
 
@@ -17,11 +19,55 @@ function padTriplet(input: string[] | null | undefined): string[] {
   return arr;
 }
 
+type CompanionRow = {
+  id: string;
+  name: string;
+  age: "young" | "mature" | "old";
+  vigRemaining: number;
+  vigMax: number;
+  claRemaining: number;
+  claMax: number;
+  spiRemaining: number;
+  spiMax: number;
+  guardRemaining: number;
+  guardMax: number;
+  property: string[];
+  createdAt: Date;
+};
+
+function toCompanionDraft(c: CompanionRow): CompanionDraft {
+  return {
+    id: c.id,
+    name: c.name,
+    age: c.age,
+    vig: { remaining: c.vigRemaining, max: c.vigMax },
+    cla: { remaining: c.claRemaining, max: c.claMax },
+    spi: { remaining: c.spiRemaining, max: c.spiMax },
+    guard: { remaining: c.guardRemaining, max: c.guardMax },
+    property: c.property,
+  };
+}
+
 export default async function KnightSheetPage({
   params,
 }: KnightSheetPageProps) {
   const { id, knightId } = await params;
-  const { knight, isGm, isOwner } = await requireKnightAccess(knightId);
+  const { isGm, isOwner } = await requireKnightAccess(knightId);
+
+  const knight = await prisma.knight.findUnique({
+    where: { id: knightId },
+    include: {
+      steeds: { orderBy: { createdAt: "asc" } },
+      squires: { orderBy: { createdAt: "asc" } },
+      predecessor: { select: { id: true, name: true, epithet: true } },
+      successors: {
+        select: { id: true, name: true, epithet: true, status: true },
+        orderBy: { createdAt: "asc" },
+      },
+    },
+  });
+  if (!knight) throw new Error("Knight disappeared between access check and fetch");
+
   const player = await prisma.user.findUnique({
     where: { id: knight.playerUserId },
     select: { name: true, email: true },
@@ -61,6 +107,14 @@ export default async function KnightSheetPage({
       playerLabel={`Played by ${playerLabel}`}
       initialDraft={initialDraft}
       canEdit={isGm || isOwner}
+      status={knight.status as KnightStatus}
+      predecessor={knight.predecessor}
+      successors={knight.successors.map((s) => ({
+        ...s,
+        status: s.status as KnightStatus,
+      }))}
+      steeds={knight.steeds.map(toCompanionDraft)}
+      squires={knight.squires.map(toCompanionDraft)}
     />
   );
 }

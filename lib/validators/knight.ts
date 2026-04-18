@@ -3,6 +3,10 @@ import { z } from "zod";
 export const KNIGHT_AGES = ["young", "mature", "old"] as const;
 export type KnightAge = (typeof KNIGHT_AGES)[number];
 
+export const KNIGHT_STATUSES = ["active", "retired", "dead"] as const;
+export type KnightStatus = (typeof KNIGHT_STATUSES)[number];
+export const knightStatusSchema = z.enum(KNIGHT_STATUSES);
+
 const trimmed = (max: number) => z.string().trim().max(max);
 
 export const weaponSchema = z.object({
@@ -34,6 +38,7 @@ const triplet = z.array(trimmed(60)).length(3);
 export const createKnightSchema = z.object({
   name: trimmed(80).min(1, "Name is required"),
   epithet: trimmed(60).default(""),
+  predecessorKnightId: z.cuid().optional(),
 });
 
 export const updateKnightSchema = z.object({
