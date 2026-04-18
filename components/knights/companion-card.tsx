@@ -125,37 +125,33 @@ export function CompanionCard({
           <input type="hidden" name="age" value={draft.age} readOnly />
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="flex flex-1 flex-col gap-2">
-            {(["vig", "cla", "spi"] as const).map((k) => {
-              const label =
-                k === "vig" ? "Vigour" : k === "cla" ? "Clarity" : "Spirit";
-              return (
-                <div key={k} className="flex items-center gap-3">
-                  <span className="w-20 shrink-0 font-heading text-base tracking-wide">
-                    {label}
-                  </span>
-                  <DiamondTracker
-                    idPrefix={`${kind}-${draft.id}-${k}`}
-                    ariaLabel={label}
-                    remaining={draft[k].remaining}
-                    max={draft[k].max}
-                    onChange={(next) => setDraft((d) => ({ ...d, [k]: next }))}
-                    disabled={!canEdit}
-                    min={STAT_MIN}
-                    maxValue={STAT_MAX}
-                  />
-                </div>
-              );
-            })}
-          </div>
-          <div className="flex flex-col items-center shrink-0">
-            <span className="mb-3 font-heading text-base tracking-wide">
-              Guard
-            </span>
+        <div className="flex flex-wrap items-end justify-around gap-x-6 gap-y-4 pt-3">
+          {(["vig", "cla", "spi"] as const).map((k) => {
+            const label =
+              k === "vig" ? "Vigour" : k === "cla" ? "Clarity" : "Spirit";
+            return (
+              <div key={k} className="flex flex-col items-center gap-3">
+                <span className="font-heading text-sm tracking-wide">
+                  {label}
+                </span>
+                <DiamondTracker
+                  idPrefix={`${kind}-${draft.id}-${k}`}
+                  ariaLabel={label}
+                  remaining={draft[k].remaining}
+                  max={draft[k].max}
+                  onChange={(next) => setDraft((d) => ({ ...d, [k]: next }))}
+                  disabled={!canEdit}
+                  min={STAT_MIN}
+                  maxValue={STAT_MAX}
+                />
+              </div>
+            );
+          })}
+          <div className="flex flex-col items-center gap-3">
+            <span className="font-heading text-sm tracking-wide">Guard</span>
             <ShieldTracker
               variant="pair"
-              size="lg"
+              size="md"
               idPrefix={`${kind}-${draft.id}-guard`}
               ariaLabel="Guard"
               remaining={draft.guard.remaining}
